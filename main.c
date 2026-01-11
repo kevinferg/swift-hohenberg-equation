@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <math.h>
 #include <complex.h>
 typedef float complex complex32_t;
@@ -35,17 +34,15 @@ void fft2_real(float *input_real, complex32_t *output_freq, complex32_t *buf, in
 void ifft2_complex(complex32_t *input_freq, float *output_real, complex32_t *buf, int n);
 
 // Swift Hohenberg solver
-void solve_swift_hohenberg(void);
+int solve_swift_hohenberg(float* u, int res);
 
-static float u[RES*RES] = {0};
-static complex32_t uhat[RES*RES];
-static complex32_t uhat_buf[RES*RES];
 
 
 int main(int argc, char** argv) {
+    static float u[RES*RES] = {0};
     random_normal_array(u, RES*RES, 0, init_stdev);
-    solve_swift_hohenberg();
-    print_array(stdout, u, RES, RES, 0,0, " .:o0@", print_width);
+    solve_swift_hohenberg(u, RES);
+    print_array(stdout, u, RES, RES, 0, 0, " .:o0@", print_width);
     return 0;
 }
 
@@ -179,7 +176,7 @@ void ifft2_complex(complex32_t *input_freq, float *output_real, complex32_t *buf
 /*                          Swift-Hohenberg Solver                              */
 /********************************************************************************/
 
-void solve_swift_hohenberg(void) {
+int solve_swift_hohenberg(float* u, int res) {
     /*  
         u'(t) = epsilon*u - (Del^2 + wavenum^2)^2 * u - u^3
 
@@ -199,10 +196,16 @@ void solve_swift_hohenberg(void) {
         u(t+1) = iFFT{FFT[u(t) + dt*N(u(t))] / denom}
     */
     int i, x, y;
-    static float K2[RES];
-    static float denom[RES*RES];
-    static float real_vals[RES*RES];
-    
+    size_t total_size = 2*res*res*sizeof(complex32_t) + (2*res*res + res)*sizeof(float);
+    void *mem = malloc(total_size);
+    if (!mem) return -1;
+
+    complex32_t *uhat = mem;
+    complex32_t *uhat_buf = uhat + res*res;
+    float *denom = (float *)(uhat_buf + res*res);
+    float *real_vals = denom + res*res;
+    float *K2 = real_vals + res*res;
+
     float lin_op, dk = 2.0f * PI / scale;
     for (i = 0; i <= RES/2; i++) {
         K2[i] = i * dk;
@@ -229,5 +232,6 @@ void solve_swift_hohenberg(void) {
 
         ifft2_complex(uhat, u, uhat_buf, RES);
     }
-    return;
+    free(mem);
+    return 0;
 }
