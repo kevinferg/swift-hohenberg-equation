@@ -14,12 +14,14 @@ typedef float complex complex32_t;
 /**********************************************************************/
 /*                             Constants                              */
 /**********************************************************************/
-#define RES                     32     // Number of rows (and columns)
-static const float scale      = 32.0f; // Number of cycles across domain
+#define RES                     64     // Number of rows (and columns)
+static const float scale      = 64.0f; // Number of cycles across domain
 static const float dt         = 0.2f;  // Time step
-static const int   num_steps  = 200;   // Number of iterations
+static const int num_steps    = 200;   // Number of iterations
 static const float epsilon    = 1.0f;  // Linear growth coefficient
 static const float wavenum    = 1.0f;  // Wave number
+static const float init_stdev = 0.1f;  // Stdev of initial noise field
+static const int print_width  = 2;     // Number of chars per float
 /*                                                                    */
 /**********************************************************************/
 
@@ -41,9 +43,9 @@ static complex32_t uhat_buf[RES*RES];
 
 
 int main(int argc, char** argv) {
-    random_normal_array(u, RES*RES, 0, .1);
+    random_normal_array(u, RES*RES, 0, init_stdev);
     solve_swift_hohenberg();
-    print_array(stdout, u, RES, RES, 0,0, "@0o:.    .:o0@", 2); //  " .:oO@"  ".....aAbB"  " @"  " .:o0@"
+    print_array(stdout, u, RES, RES, 0,0, " .:o0@", print_width);
     return 0;
 }
 
