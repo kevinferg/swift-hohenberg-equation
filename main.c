@@ -2,22 +2,50 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <math.h>
+#include <complex.h>
+typedef float complex complex32_t;
+#ifndef PI
+#define PI 3.14159265358979
+#endif
 
-/*  _________________________________  */
-/* |__________  Constants  __________| */
 
+/**********************************************************************/
+/*                             Constants                              */
+/**********************************************************************/
 #define RES                     32     // Number of rows (and columns)
 static const float scale      = 32.0f; // Number of cycles across domain
 static const float dt         = 0.2f;  // Time step
-static const int   num_steps  = 250;   // Number of iterations
+static const int   num_steps  = 200;   // Number of iterations
 static const float epsilon    = 1.0f;  // Linear growth coefficient
 static const float wavenum    = 1.0f;  // Wave number
+/*                                                                    */
+/**********************************************************************/
 
-/*  _________________________________  */
+// 2D float array utility functions
+void random_normal_array(float* arr, int N, float mean, float stdev);
+void print_array(FILE* stream, float* array, int rows, int cols, float vmin, float vmax, char* chars, int width);
 
+// FFT functions
+void fft_1d_c32(complex32_t *x, int n);
+void fft2_real(float *input_real, complex32_t *output_freq, complex32_t *buf, int n);
+void ifft2_complex(complex32_t *input_freq, float *output_real, complex32_t *buf, int n);
 
 static float u[RES*RES] = {0};
+static complex32_t uhat[RES*RES];
+static complex32_t uhat_buf[RES*RES];
+
+
+int main(int argc, char** argv) {
+    random_normal_array(u, RES*RES, 0, .1);
+    print_array(stdout, u, RES, RES, 0,0, "@0o:.    .:o0@", 2); //  " .:oO@"  ".....aAbB"  " @"  " .:o0@"
+    return 0;
+}
+
+/********************************************************************************/
+/*                     2D float array utility functions                         */
+/********************************************************************************/
 
 void random_normal_array(float* arr, int N, float mean, float stdev) {
     static const int16_t prob0[16] = {-9555, -5842, -3891, -2666, -1954, -1112, -713, 370, -265, 339, 1480, 2780, 2508, 3849, 6098, 8303};
@@ -38,30 +66,105 @@ void random_normal_array(float* arr, int N, float mean, float stdev) {
     return;
 }
 
-void print_array(FILE* stream, float* array, int rows, int cols, float vmin, float vmax, char* chars) {
-    int r, c, index;
-    int n = strlen(chars);
-    if (n <= 0) return;
+void print_array(FILE* stream, float* array, int rows, int cols, float vmin, float vmax, char* chars, int width) {
+    int r, c, index, j, n;
+    if ( (n = strlen(chars)) <= 0) return;
+    if (vmin == vmax) {
+        vmin = array[0];
+        vmax = array[1];
+        for (j = 1; j < n; j++) {
+            if (array[j] < vmin) vmin = array[j];
+            if (array[j] > vmax) vmax = array[j];
+        }
+    }
     float range = vmax - vmin;
-    float h = range / (float) n;
-    float val;
-    char p;
     for (r = 0; r < rows; r++) {
         for (c = 0; c < cols; c++) {
-            val = array[cols*r + c];
-            index = (int) ((val - vmin) / range * n);
+            index = (int) ((array[cols*r + c] - vmin) / range * n);
             index = index < 0? 0: index > n-1? n-1: index;
-            p = chars[index];
-            // printf("%f %d\n", (val - minval) / range * n, (int) ((val - minval) / range * n));
-            fprintf(stream,"%c", p);
+            for (j = 0; j < width; j++) 
+                fprintf(stream,"%c", chars[index]);
         }
         fprintf(stream, "\n");
     }
     return;
 }
 
-int main(int argc, char** argv) {
-    random_normal_array(u, RES*RES, 0, 1);
-    print_array(stdout, u, RES, RES, -3, 3, " .oO@");
-    return 0;
+/********************************************************************************/
+/*                                 FFT Functions                                */
+/********************************************************************************/
+
+void fft_1d_c32(complex32_t *x, int n) {
+    // Note: n must be a power of 2.
+
+    int index, bit_reversed_index;
+    for (index = 1, bit_reversed_index = 0; index < n; index++) {
+        int bit_mask = n >> 1;
+        while (bit_reversed_index & bit_mask) {
+            bit_reversed_index &= ~bit_mask;
+            bit_mask >>= 1;
+        }
+
+        bit_reversed_index |= bit_mask;
+        if (index < bit_reversed_index) {
+            complex32_t temp = x[index];
+            x[index] = x[bit_reversed_index];
+            x[bit_reversed_index] = temp;
+        }
+    }
+
+    int stage_size, half_size, k;
+    complex32_t wlen, w, rotated_value;
+    for (stage_size = 2; stage_size <= n; stage_size <<= 1) {
+    // Iterate over FFT stages, sub-FFT sizes doubling each time
+        half_size = stage_size >> 1;
+        wlen = cexpf(-2.0f * I * PI / stage_size);
+
+        for (int block_start = 0; block_start < n; block_start += stage_size) {
+        // Iterate over independent butterfly blocks within this stage
+            w = 1.0f;
+            for (k = 0; k < half_size; k++) {
+            // Individual butterfly operations within a block
+                int lower_index = block_start + k;
+                int upper_index = lower_index + half_size;
+                rotated_value = w * x[upper_index];
+                x[upper_index] = x[lower_index] - rotated_value;
+                x[lower_index] = x[lower_index] + rotated_value;
+                w *= wlen;
+            }
+        }
+    }
+    return;
+}
+
+void fft2_real(float *input_real, complex32_t *output_freq, complex32_t *buf, int n) {
+    int x, y;
+    for (y = 0; y < n; y++) { // Row FFTs
+        int row_offset = y * n;
+        for (x = 0; x < n; x++) buf[x] = input_real[row_offset + x];
+        fft_1d_c32(buf, n);
+        for (x = 0; x < n; x++) output_freq[row_offset + x] = buf[x];
+    }
+    for (x = 0; x < n; x++) { // Column FFTs
+        for (y = 0; y < n; y++) buf[y] = output_freq[y * n + x];
+        fft_1d_c32(buf, n);
+        for (y = 0; y < n; y++) output_freq[y * n + x] = buf[y];
+    }
+    return;
+}
+
+void ifft2_complex(complex32_t *input_freq, float *output_real, complex32_t *buf, int n) {
+    int x, y;
+    for (y = 0; y < n; y++) { // Row inverse FFTs
+        int row_offset = y * n;
+        for (x = 0; x < n; x++) buf[x] = conjf(input_freq[row_offset + x]);
+        fft_1d_c32(buf, n);
+        for (x = 0; x < n; x++) input_freq[row_offset + x] = conjf(buf[x]);
+    }
+
+    for (x = 0; x < n; x++) { // Column inverse FFTs
+        for (y = 0; y < n; y++) buf[y] = conjf(input_freq[y * n + x]);
+        fft_1d_c32(buf, n);
+        for (y = 0; y < n; y++) output_real[y * n + x] = crealf(buf[y]) / (n * n);
+    }
 }
