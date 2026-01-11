@@ -32,6 +32,9 @@ void fft_1d_c32(complex32_t *x, int n);
 void fft2_real(float *input_real, complex32_t *output_freq, complex32_t *buf, int n);
 void ifft2_complex(complex32_t *input_freq, float *output_real, complex32_t *buf, int n);
 
+// Swift Hohenberg solver
+void solve_swift_hohenberg(void);
+
 static float u[RES*RES] = {0};
 static complex32_t uhat[RES*RES];
 static complex32_t uhat_buf[RES*RES];
@@ -39,6 +42,7 @@ static complex32_t uhat_buf[RES*RES];
 
 int main(int argc, char** argv) {
     random_normal_array(u, RES*RES, 0, .1);
+    solve_swift_hohenberg();
     print_array(stdout, u, RES, RES, 0,0, "@0o:.    .:o0@", 2); //  " .:oO@"  ".....aAbB"  " @"  " .:o0@"
     return 0;
 }
@@ -167,4 +171,61 @@ void ifft2_complex(complex32_t *input_freq, float *output_real, complex32_t *buf
         fft_1d_c32(buf, n);
         for (y = 0; y < n; y++) output_real[y * n + x] = crealf(buf[y]) / (n * n);
     }
+}
+
+/********************************************************************************/
+/*                          Swift-Hohenberg Solver                              */
+/********************************************************************************/
+
+void solve_swift_hohenberg(void) {
+    /*  
+        u'(t) = epsilon*u - (Del^2 + wavenum^2)^2 * u - u^3
+
+                ____________Linear Operator__________     ___Nonlinear___
+        u'(t) = [epsilon - (Del^2 + wavenum^2)^2] * u  +       -u^3
+              =                 L(u)                   +       N(u)
+
+        Euler: u(t+1) = u(t) + dt * u'()
+                      = u(t) + dt*L(u(t+1))  +  dt*N(u(t))
+               u(t+1) - dt*L(u(t+1)) = u(t)  +  dt*N(u(t))
+
+        Fourier Transform.... Del^2 becomes multiplication by -k^2
+        (1 - dt*(epsilon - (wavenum^2 - k^2)^2)) * FFT[u(t+1)] = FFT[u(t) + dt*N(u(t))]
+        ... Precompute lin. op. array:  denom = 1 - dt*(epsilon - (wavenum^2 - k^2)^2)
+        FFT[u(t+1)] = FFT[u(t) + dt*N(u(t))] / denom
+
+        u(t+1) = iFFT{FFT[u(t) + dt*N(u(t))] / denom}
+    */
+    int i, x, y;
+    static float K2[RES];
+    static float denom[RES*RES];
+    static float real_vals[RES*RES];
+    
+    float lin_op, dk = 2.0f * PI / scale;
+    for (i = 0; i <= RES/2; i++) {
+        K2[i] = i * dk;
+        K2[i] *= K2[i]; // Laplacian becomes elementwise square of meshgrid in freq space
+        K2[RES - i] = K2[i]; // Values are mirrored + negated across middle index
+        // (Skipping negation step bc it's all squared)
+    }
+    for (y = 0; y < RES; y++) {
+        for (x = 0; x < RES; x++) {
+            lin_op = (wavenum*wavenum - (K2[x] + K2[y]));
+            lin_op = epsilon - lin_op*lin_op;
+            denom[y*RES + x] = 1.0f - dt*lin_op;
+        }
+    }
+
+    for (i = 0; i < num_steps; i++) {
+        for (y = 0; y < RES*RES; y++)
+            u[y] = u[y] + dt * ( -u[y]*u[y]*u[y] ); // Real space operations
+
+        fft2_real(u, uhat, uhat_buf, RES);
+
+        for (y = 0; y < RES*RES; y++)
+            uhat[y] /= denom[y]; // Elementwise operations in freq space
+
+        ifft2_complex(uhat, u, uhat_buf, RES);
+    }
+    return;
 }
