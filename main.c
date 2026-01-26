@@ -13,14 +13,15 @@ typedef float complex complex32_t;
 /**********************************************************************/
 /*                             Constants                              */
 /**********************************************************************/
-#define RES                     64     // Number of rows (and columns)
-static const float scale      = 64.0f; // Number of cycles across domain
+#define RES                     32     // Number of rows (and columns)
+static const float scale      = 32.0f; // Number of cycles across domain
 static const float dt         = 0.2f;  // Time step
 static const int num_steps    = 200;   // Number of iterations
 static const float epsilon    = 1.0f;  // Linear growth coefficient
 static const float wavenum    = 1.0f;  // Wave number
 static const float init_stdev = 0.1f;  // Stdev of initial noise field
 static const int print_width  = 2;     // Number of chars per float
+static uint16_t rng_seed      = 321;   // RNG seed
 /*                                                                    */
 /**********************************************************************/
 
@@ -36,8 +37,6 @@ void ifft2_complex(complex32_t *input_freq, float *output_real, complex32_t *buf
 // Swift Hohenberg solver
 int solve_swift_hohenberg(float* u, int res);
 
-
-
 int main(int argc, char** argv) {
     static float u[RES*RES] = {0};
     random_normal_array(u, RES*RES, 0, init_stdev);
@@ -50,23 +49,32 @@ int main(int argc, char** argv) {
 /*                     2D float array utility functions                         */
 /********************************************************************************/
 
-void random_normal_array(float* arr, int N, float mean, float stdev) {
-    static const int16_t prob0[16] = {-9555, -5842, -3891, -2666, -1954, -1112, -713, 370, -265, 339, 1480, 2780, 2508, 3849, 6098, 8303};
-    static const int16_t prob1[16] = {-8339, -5311, -4676, -2430, -1969, -1431, -101, -284, -225, 968, 1615, 2042, 2668, 4516, 6143, 9003};
-    static const int16_t prob2[16] = {-8303, -5924, -3739, -2536, -2945, -1728, -1137, -1282, 339, 1408, 1334, 1334, 3020, 3988, 4477, 8564};
-    static const int16_t prob3[8]  = {-6486, -3190, -1834, -801, 1022, 2116, 2882, 6897};
-    int i, x;
-    unsigned int r;
-    for (i = 0; i < N; i++) {
-        r = rand();
-        x  =  prob0[r&15]; r >>= 4;
-        x +=  prob1[r&15]; r >>= 4;
-        x +=  prob2[r&15]; r >>= 4;
-        x +=  prob3[r&7];
+static inline uint16_t rand15(void) {
+    rng_seed = rng_seed * 1103515245 + 12345;
+    return rng_seed >> 1;  // return 15-bit result
+}
 
-        arr[i] = mean + stdev * ((float) x / (float) (8192.f));
-    }
-    return;
+static inline float frandn(void) {
+    static const int16_t samples[5][8] = {
+        {-18666, 1465,  9124, -2456,  7113,   2465,  2440,  -4190},
+        { -1690, 1656, -6392,  3616, -7014,   8614,  5799,  -1058},
+        { -3021, 4302, -3768, -7831, 11343,  13204, -1676,  -5054},
+        {  1012, 6001,  5497, 14892,   487,    967,   -39, -13798},
+        { -7858, 3286,  1206, -5579, 14569, -11125, -9127,  -8716}
+    }; // ^ Fine-tuned samples from ~N(mu=0, sig=2^14/sqrt(5))
+    uint16_t r = rand15();          // 15 random bits
+    int32_t x;                      // Add 1 entry from each row
+    x  = samples[0][r&7];  r >>= 3;
+    x += samples[1][r&7];  r >>= 3;
+    x += samples[2][r&7];  r >>= 3;
+    x += samples[3][r&7];  r >>= 3;
+    x += samples[4][r&7];           // Now, x~N(mu=0, sig=2^14)
+    return (float) x * (1.0f / 16384.0f);
+}
+
+void random_normal_array(float* arr, int N, float mean, float stdev) {
+    uint32_t i;
+    for (i = 0; i < N; i++) arr[i] = frandn() * stdev + mean;
 }
 
 void print_array(FILE* stream, float* array, int rows, int cols, float vmin, float vmax, char* chars, int width) {
@@ -90,7 +98,6 @@ void print_array(FILE* stream, float* array, int rows, int cols, float vmin, flo
         }
         fprintf(stream, "\n");
     }
-    return;
 }
 
 /********************************************************************************/
@@ -137,7 +144,6 @@ void fft_1d_c32(complex32_t *x, int n) {
             }
         }
     }
-    return;
 }
 
 void fft2_real(float *input_real, complex32_t *output_freq, complex32_t *buf, int n) {
@@ -153,7 +159,6 @@ void fft2_real(float *input_real, complex32_t *output_freq, complex32_t *buf, in
         fft_1d_c32(buf, n);
         for (y = 0; y < n; y++) output_freq[y * n + x] = buf[y];
     }
-    return;
 }
 
 void ifft2_complex(complex32_t *input_freq, float *output_real, complex32_t *buf, int n) {

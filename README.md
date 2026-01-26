@@ -1,6 +1,9 @@
 # swift-hohenberg-equation
 Solving the Swift-Hohenberg equation to generate stripe patterns
 
+$$
+u'(t) = \varepsilon u - (\lambda^2 + \nabla^2)^2 \cdot u - u^3
+$$
 
 ## Usage
 
@@ -14,94 +17,101 @@ gcc -O2 -lm *.c -o main.exe
 
 Compiling and running with these parameters:
 ```c
-#define RES                     64     // Number of rows (and columns)
-static const float scale      = 64.0f; // Number of cycles across domain
+#define RES                     32     // Number of rows (and columns)
+static const float scale      = 32.0f; // Number of cycles across domain
 static const float dt         = 0.2f;  // Time step
 static const int num_steps    = 200;   // Number of iterations
 static const float epsilon    = 1.0f;  // Linear growth coefficient
 static const float wavenum    = 1.0f;  // Wave number
 static const float init_stdev = 0.1f;  // Stdev of initial noise field
-static const int print_width  = 1;     // Number of chars per float
+static const int print_width  = 2;     // Number of chars per float
+static uint16_t rng_seed      = 321;   // RNG seed
 ```
 
 ... results in the following being printed to the console:
 ```
-  .0@@o  :0@@@@@@@@@@0o:..::o0@@@o.  ..   :@@0. .0@@0.  ...     
-..o@@0.  :@@00oooo0@@@@000@@@@@@0: .:0o:  .0@0.  o@@o. .o00oo::.
-o0@@0:  .o@0:..  ..o0@@@@@@@@@@0:. :@@@o  .0@0. .0@0:  o@@@@@@00
-@@@@o. .o@@o.       :00@@00oo::.  .o@@@o. :@@0. .0@0. .o@@@@@@@@
-@@@0:  :0@@:  .::.   .:::...       :0@@o  o@@o  :@@o. .0@@ooo00@
-o0@0:  :@@0:  :0@0o.           ..  .:oo. .0@@:  o@@o  :@@o.  .::
-.o@@:  :@@0: .o@@@0:     ...::ooo:.  ..  :@@0.  o@@o  :@@o      
- :@@0. .0@@:  o@@@0:  .:oo00@@@@@0o:.   .o@@0. .o@@o  :@@0.     
- .0@0:  o@@:  :@@@o. .o@@@@@@@@@@@@0o:  .o@@0.  o@@o  .0@@o:oo:.
- .o@@:  :@@o. .o0o.  :@@@@@00ooo00@@@0:  :@@0.  o@@0.  o@@@@@@@:
-  :@@o  :0@0:  ...  .0@@0o:..   .:0@@@o. .0@@:  :0@@:  .0@@@@@@o
-  :@@0. .0@@0.    .:o@@0:.        .o@@0:  o@@0. .o@@0.  :o000@0:
-  :@@0: .o@@@o.  .:0@@0:   ..::.   .0@@o  .0@@:  .0@@o.  ....:. 
- .o@@0:  :0@@0:  :0@@@o.  :o0@@0o.  o@@0.  o@@0.  o@@0:
-:o@@@o.  .:0@@o. :@@@0.  :0@@@@@@:  :@@0.  :@@0.  :@@@:   .....:
-@@@@o:.    :0@0. :0@0:  .0@@@00@@0. .0@0.  :@@0.  o@@0: .:ooo000
-@@@o. .::  .o@@o..:o:   o@@0:.:0@@: .o@0:..o@@o. .0@@o. .0@@@@@@
-0o:.  :00:  o@@0:      :0@@o   o@@o  :0@0oo@@0:  :@@0.  o@@@@000
-..   .0@@o..o@@@:    .:0@@0:  .o@@o  .0@@@@@0:  .0@@o  .0@@0o:..
-    .:@@@0..:0@0:  .:0@@@@o   :0@@:  .0@@@00:  .o@@0.  :@@0:
-:..:o0@@@o. .::.  .o@@@@0:.  :0@@o.  :0@@0:.   :@@@:  .0@@o   ..
-0000@@@0o.       .o@@@0o:   .0@@0:  .o@@0:   .o0@@o.  o@@0.  :o0
-@@@@@@o:.      .:o@@@0:.   .o@@@:  .o@@0:   .o@@@0.  :0@@:  :0@@
-oo0@@0:   ::oooo0@@@o.   .:0@@@o. .o@@@o.  :0@@@0.  .0@@o. .o@@@
-..:0@o.  :0@@@@@@@0o.   :o0@@@0: .:@@@0:  :0@@@o.  .o@@0:  :0@@o
-  :@@o  .o@@@@@@@0:   .o0@@@@o:. .o@@@o. .o@@@o.  .o@@@:  .o@@o.
- .o@@:  :0@@00oo:.   :o@@@@o:.    .oo:.  :0@@o.  .o@@@o.  :@@0:
- o@@0. .o@@0:..    .:0@@@0:.            .o@@0.  .o@@@o.  :0@@o.
-:0@@o  .0@@:     .:o@@@@o.   .::::..   .o0@0:  .o@@@o.  .0@@0.
-0@@0.  o@@0.  .:o0@@@@0:.   :o0@@00ooooo0@@o.  :@@@o.  .o@@0:  .
-@@0:  .0@@o  .o0@@@@0o.   .o0@@@@@@@@@@@@@@o  .0@@0:  .o@@@:  .o
-@@o  .o@@0.  :@@@@0o:   .:0@@@@000@@@@00@@@:  :0@@o  .o@@@o.  :@
-@o.  :@@@:  .0@@@o:.   .o@@@@0o:.::ooo::o0@o  :0@0:  :0@@o.  :0@
-0:  .0@@o.  o@@0:.   .:0@@@0o.          :0@o  .0@0.  o@@0:  .0@@
-:  .o@@0:  :0@@o.  .:0@@@@o.            :0@o. :0@0.  o@@o.  o@@@
-.  :@@@:  .o@@o.  .o@@@@0:.   .:ooo:::.:0@@o. :@@0. .o@@o  .0@@o
-  .0@@o.  o@@0:  .o@@@0o.   .o0@@@@@@@0@@@@o. o@@0: .0@@o  :0@@:
-  o@@0:  :0@@o. .o@@@0:   .:0@@@@@@@@@@@@0o. .o@@@:.:@@@o  :@@0.
- .0@@o  .o@@0.  :@@@o.   :o@@@@0oooo000oo:.   :00o..:0@0:  o@@o
- :@@0:  :@@@:  .0@@o.  .:0@@@0o..  .....       .:.  .oo:. .0@@: 
- :@@0:  :@@@:  .0@@o.  .:0@@@0o..  .....       .:.  .oo:. .0@@:
- o@@o. .o@@o.  o@@0:  .o@@@0o.           .:::.       ..   :0@@:
-.0@@:  :0@@:  :0@@o  .o@@@0:.   ..:... .:o0@@0:.......   .o@@0.
- o@@o. .o@@o.  o@@0:  .o@@@0o.           .:::.       ..   :0@@:
-.0@@:  :0@@:  :0@@o  .o@@@0:.   ..:... .:o0@@0:.......   .o@@0.
-:0@0:  o@@0.  o@@0.  :@@@o.   .o00@00ooo0@@@@@@00000oo::::0@0:
-:0@0:  o@@0.  o@@0.  :@@@o.   .o00@00ooo0@@@@@@00000oo::::0@0:
-:@@0. .o@@o  .0@@:  .0@@0.  .:0@@@@@@@@@@0000@@@@@@@@@@00@@@o.
-:@@0. .o@@o  .0@@:  .0@@0.  .:0@@@@@@@@@@0000@@@@@@@@@@00@@@o.
-o@@o. .0@@:  :@@0.  o@@0:  .o@@@@0000@@@0:..:o00@@@@@@@@@@@@o
-o@@o. .0@@:  :@@0.  o@@0:  .o@@@@0000@@@0:..:o00@@@@@@@@@@@@o
-0@@o  :@@0. .o@@o  .0@@o. .o@@@0::..:o0@0:    .:::::oooo00@@o:.:
-@@0:  :@@o. .0@@:  :@@0:  :@@@o.     .o@@o.           ...:0@@0o0
-0@@o  :@@0. .o@@o  .0@@o. .o@@@0::..:o0@0:    .:::::oooo00@@o:.:
-@@0:  :@@o. .0@@:  :@@0:  :@@@o.     .o@@o.           ...:0@@0o0
-@@o.  o@@o  :0@0.  o@@0.  o@@0.  ..   :0@@0o:..           :0@@@@
-@@o.  o@@o  :0@0.  o@@0.  o@@0.  ..   :0@@0o:..           :0@@@@
-0o.  .0@@:  :@@0. .o@@o   o@@o  .o0o. .o@@@@@00oo::::::.   :o@@@
-0o.  .0@@:  :@@0. .o@@o   o@@o  .o0o. .o@@@@@00oo::::::.   :o@@@
-:.  .o@@0:  o@@0.  o@@o   o@@:  :@@@:  .o0@@@@@@@@@@@@0o:.  .:oo
-:.  .o@@0:  o@@0.  o@@o   o@@:  :@@@:  .o0@@@@@@@@@@@@0o:.  .:oo
-   .o@@@0. .o@@0:  :@@0. .o@0:  :@@@0.   .:o0@@@@@@@@@@@@o.
- .:o@@@0:. .o@@@o. .0@@0:o0@@o  .o@@@o.     .:ooo0oo00@@@@o:.
-:o0@@@o:.   :o@@0:  :@@@@@@@@0:  .o@@@o:..      ......:o@@@0o:::
- .:o@@@0:. .o@@@o. .0@@0:o0@@o  .o@@@o.     .:ooo0oo00@@@@o:.
-:o0@@@o:.   :o@@0:  :@@@@@@@@0:  .o@@@o:..      ......:o@@@0o:::
-:o0@@@o:.   :o@@0:  :@@@@@@@@0:  .o@@@o:..      ......:o@@@0o:::
-@@@@0o.      .o0@o. .o@@@@00@@o.  :0@@@@0o:..          .o0@@@@00
-@@@0:   .::.  .o@0.  .:oo:::o@@o. .:0@@@@@@0o:.......    :0@@@@@
-00o:   .o00o. .o@@o.   ..   :@@@:   .:o00@@@@@0000000o:   .:o000
-...  .:0@@@@o::0@@0o:.      :@@@:      .:o0@@@@@@@@@@@0:.   ....
-    .o0@@@@@@@@@@@@@0oo:...:0@@o.  ..     .:o0@@@000@@@0o.
-..  :0@@0oo0@@@000@@@@@00o00@@o. .:ooo:.    .::o::..:0@@@0:....:
-0: .o@@0:...:o:::::o0@@@@@@@@0.  :0@@@00o:.    .     .o@@@@00000
-@o..o@@o.          .:o0@@@@@o.  .o@@@@@@@0o:.    ..   .0@@@@@@@@
-0: .o@@:   ..         .:ooo:.  .o@@@0o0@@@@@o:  .o0o.  :o0000@@@
-:. .0@0:  :ooo::oo:.          .o@@0:...:o0@@@o. :0@@o.  ....::oo
-   :@@0. .0@@@@@@@@0o.       .o@@@:     .:0@@0. :0@@0:        ..
+  ..00@@@@oo    ..00@@@@oo..    oo@@@@00::......    ..oo@@@@oo  
+    oo@@@@oo    ::@@@@00::    ::00@@00::    ::oo::..  ::00@@00..
+    oo@@@@oo    ::@@@@00..    oo@@@@oo    ..oo@@00..  ..00@@@@::
+    ::@@@@oo    ::@@@@oo    ..00@@@@::    ..00@@@@..    oo@@@@::
+    oo@@@@oo    ::@@@@oo..  ..oo@@@@oo    ::@@@@00..  ..00@@@@::
+    oo@@@@oo    ::@@@@00..    ::00@@00::::00@@@@oo    ..00@@00..
+  ..00@@@@oo    ::00@@@@oo    ..::00000000@@@@oo..    oo@@@@oo  
+  ::@@@@00::    ..oo@@@@00::      ::oo@@@@@@00::    ::00@@00::
+..oo@@@@oo..      ::00@@@@00::      ::00@@@@oo      oo@@@@oo..
+::00@@00::    ......::oo@@@@00::    ..oo@@@@::    ..00@@@@::
+oo@@@@oo    ::oo::..  ..oo@@@@00..    oo@@@@::    ::@@@@00..
+00@@00..  ..oo@@00::    ..00@@@@::    oo@@@@oo    ::@@@@oo..  ..
+00@@00..  ..00@@@@::    ..00@@@@::    oo@@@@oo    ::@@@@oo    ..
+00@@00..  ..oo@@@@oo    ..00@@@@::    oo@@@@::    ::@@@@oo    ..
+00@@00::    ::@@@@00::::oo@@@@00..    oo@@@@::    ::@@@@oo    ..
+oo@@@@oo    ..oo@@@@000000@@00::    ..oo@@@@::    ::@@@@00..  ..
+::@@@@00..    ::00@@@@@@00oo::      ::00@@00::    ::00@@00..
+..00@@@@::    ..00@@@@00::..    ..::oo@@@@@@::    ..00@@@@::
+..00@@@@oo    ..00@@@@::      ::oo0000@@@@@@oo..    oo@@@@oo    
+  oo@@@@oo    ..00@@00..    ::00@@@@00oo00@@00::    ::@@@@00..
+..oo@@@@::    ::@@@@00..  ..oo@@@@00::..oo@@@@::    ::@@@@00..
+..00@@@@::    ::@@@@oo    ..00@@@@::    ::@@@@oo    ::@@@@00..
+..00@@00..    oo@@@@oo    ::@@@@00..    ::@@@@oo    ::@@@@oo
+::@@@@oo    ..00@@@@::    ::@@@@oo      oo@@@@::    oo@@@@oo
+oo@@@@oo    ::@@@@00..    oo@@@@oo    ..00@@00..    oo@@@@::
+oo@@@@::    oo@@@@00..  ..oo@@@@::    ::@@@@00..  ..00@@00..    
+00@@00..    oo@@@@oo    ..00@@00::    ::@@@@oo    ..00@@00..  ..
+00@@00::    oo@@00::    ::@@@@00..    oo@@@@oo    ::@@@@00..  ..
+oo@@@@::    ::oo::..  ..00@@@@::    ..00@@@@::    ::@@@@00..
+::@@@@00..    ....  ..oo@@@@oo..    ::@@@@00::    ::@@@@00..
+..00@@@@oo..      ..oo@@@@00::    ::00@@@@oo..    ::00@@@@oo
+  ::@@@@00::    ..oo@@@@00::    ..oo@@@@00::      ..oo@@@@00..
 ```
+
+
+## Explanation
+
+The Swift-Hohenberg Equation is given as
+$$
+u'(t) = \varepsilon u - (\lambda^2 + \nabla^2)^2 \cdot u - u^3.
+$$
+
+The right-hand side can be rewritten as a sum of a linear operator and a nonlinear operator on $u$:
+$$
+u'(t) =  \quad   [\varepsilon - (\lambda^2 + \nabla^2)^2] \cdot u   \quad  +   \quad  -u^3  \quad = L(u) + N(u).
+$$
+
+Starting with an initial condition $u(0)$ given, we can integrate with Euler's method:
+$$
+u(t+1) = u(t) + dt * u'(t).
+$$
+
+We make the method semi-implicit by representing $u'(t) = L(u(t+1)) + N(u(t))$, such that:
+$$
+u(t+1) = u(t) + dt \cdot L(u(t+1))  +  dt \cdot N(u(t)).
+$$
+
+Rearranging, we get the u(t+1) terms on one side and the u(t) terms on the other:
+$$
+u(t+1) - dt \cdot L(u(t+1)) = u(t) +  dt \cdot N(u(t)).
+$$
+
+Now, we take the Fourier Transform of both sides. The $\nabla^2\cdot$ operator becomes multiplication by -k^2 in the Fourier domain (for the 2D problem, this is a grid of frequency values). The resulting equation after applying an FFT is thus:
+$$
+(1 - dt\cdot (\varepsilon - (\lambda^2 - k^2)^2)) * FFT[u(t+1)] = FFT[u(t) + dt\cdot N(u(t))].
+$$
+
+For speed, we can precompute the linear operator array $Q = 1 - dt \cdot (\varepsilon - (\lambda^2 - k^2)^2)$ across the meshgrid of frequencies $k$. This gives the following in Fourier space:
+$$
+FFT[u(t+1)] = FFT[u(t) + dt \cdot N(u(t))] / Q.
+$$
+
+Thus, a full semi-implicit Euler time step update can be written as:
+$$
+u(t+1) = iFFT\{FFT[u(t) + dt\cdot N(u(t))] / Q\}
+$$
+
+In practice, this means:
+1. Set initial grid `u(0)` as Gaussian noise
+2. Precompute meshgrid of `k` frequencies and the denominator term `Q = 1 - dt*(epsilon - (wavenum^2 - k^2)^2)`
+3. Starting with current grid `u`, evaluate `u + dt * N(u)`
+4. Compute the 2D FFT
+5. Divide elementwise by the precomputed denominator term `Q`
+6. Compute the 2D inverse FFT
+7. Repeat steps 3-6 for desired number of time steps
