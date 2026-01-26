@@ -68,44 +68,28 @@ oo@@@@::    ::oo::..  ..00@@@@::    ..00@@@@::    ::@@@@00..
 ## Explanation
 
 The Swift-Hohenberg Equation is given as  
-$$
-u'(t) = \varepsilon u - (\lambda^2 + \nabla^2)^2 \cdot u - u^3.
-$$
+$$ u'(t) = \varepsilon u - (\lambda^2 + \nabla^2)^2 \cdot u - u^3. $$
 
 The right-hand side can be rewritten as a sum of a linear operator and a nonlinear operator on $u$:  
-$$
-u'(t) =  \quad   [\varepsilon - (\lambda^2 + \nabla^2)^2] \cdot u   \quad  +   \quad  -u^3  \quad = L(u) + N(u).
-$$
+$$ u'(t) =  \quad   [\varepsilon - (\lambda^2 + \nabla^2)^2] \cdot u   \quad  +   \quad  -u^3  \quad = L(u) + N(u). $$
 
 Starting with an initial condition $u(0)$ given, we can integrate with Euler's method:  
-$$
-u(t+1) = u(t) + dt * u'(t).
-$$
+$$ u(t+1) = u(t) + dt * u'(t). $$
 
 We make the method semi-implicit by representing $u'(t) = L(u(t+1)) + N(u(t))$, such that:  
-$$
-u(t+1) = u(t) + dt \cdot L(u(t+1))  +  dt \cdot N(u(t)).
-$$
+$$ u(t+1) = u(t) + dt \cdot L(u(t+1))  +  dt \cdot N(u(t)). $$
 
 Rearranging, we get the u(t+1) terms on one side and the u(t) terms on the other:  
-$$
-u(t+1) - dt \cdot L(u(t+1)) = u(t) +  dt \cdot N(u(t)).
-$$
+$$ u(t+1) - dt \cdot L(u(t+1)) = u(t) +  dt \cdot N(u(t)). $$
 
 Now, we take the Fourier Transform of both sides. The $\nabla^2\cdot$ operator becomes multiplication by -k^2 in the Fourier domain (for the 2D problem, this is a grid of frequency values). The resulting equation after applying an FFT is thus:  
-$$
-(1 - dt\cdot (\varepsilon - (\lambda^2 - k^2)^2)) * FFT[u(t+1)] = FFT[u(t) + dt\cdot N(u(t))].
-$$
+$$ (1 - dt\cdot (\varepsilon - (\lambda^2 - k^2)^2)) * FFT[u(t+1)] = FFT[u(t) + dt\cdot N(u(t))]. $$
 
 For speed, we can precompute the linear operator array $Q = 1 - dt \cdot (\varepsilon - (\lambda^2 - k^2)^2)$ across the meshgrid of frequencies $k$. This gives the following in Fourier space:  
-$$
-FFT[u(t+1)] = FFT[u(t) + dt \cdot N(u(t))] / Q.
-$$
+$$ FFT[u(t+1)] = FFT[u(t) + dt \cdot N(u(t))] / Q. $$
 
 Thus, a full semi-implicit Euler time step update can be written as:  
-$$
-u(t+1) = iFFT\{FFT[u(t) + dt\cdot N(u(t))] / Q\}
-$$
+$$ u(t+1) = iFFT\{FFT[u(t) + dt\cdot N(u(t))] / Q\} $$
 
 In practice, this means:
 1. Set initial grid `u(0)` as Gaussian noise
