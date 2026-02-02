@@ -21,7 +21,7 @@ static const float epsilon    = 1.0f;  // Linear growth coefficient
 static const float wavenum    = 1.0f;  // Wave number
 static const float init_stdev = 0.1f;  // Stdev of initial noise field
 static const int print_width  = 2;     // Number of chars per float
-static uint16_t rng_seed      = 321;   // RNG seed
+static uint32_t rng_seed      = 321;   // RNG seed
 /*                                                                    */
 /**********************************************************************/
 
@@ -50,8 +50,8 @@ int main(int argc, char** argv) {
 /********************************************************************************/
 
 static inline uint16_t rand15(void) {
-    rng_seed = rng_seed * 1103515245 + 12345;
-    return rng_seed >> 1;  // return 15-bit result
+    rng_seed = rng_seed * 747796405u + 2891336453u;
+    return rng_seed >> 16;  // return 15-bit result
 }
 
 static inline float frandn(void) {
@@ -212,30 +212,30 @@ int solve_swift_hohenberg(float* u, int res) {
     float *K2 = real_vals + res*res;
 
     float lin_op, dk = 2.0f * PI / scale;
-    for (i = 0; i <= RES/2; i++) {
+    for (i = 0; i <= res/2; i++) {
         K2[i] = i * dk;
         K2[i] *= K2[i]; // Laplacian becomes elementwise square of meshgrid in freq space
-        K2[RES - i] = K2[i]; // Values are mirrored + negated across middle index
+        K2[res - i] = K2[i]; // Values are mirrored + negated across middle index
         // (Skipping negation step bc it's all squared)
     }
-    for (y = 0; y < RES; y++) {
-        for (x = 0; x < RES; x++) {
+    for (y = 0; y < res; y++) {
+        for (x = 0; x < res; x++) {
             lin_op = (wavenum*wavenum - (K2[x] + K2[y]));
             lin_op = epsilon - lin_op*lin_op;
-            denom[y*RES + x] = 1.0f - dt*lin_op;
+            denom[y*res + x] = 1.0f - dt*lin_op;
         }
     }
 
     for (i = 0; i < num_steps; i++) {
-        for (y = 0; y < RES*RES; y++)
+        for (y = 0; y < res*res; y++)
             u[y] = u[y] + dt * ( -u[y]*u[y]*u[y] ); // Real space operations
 
-        fft2_real(u, uhat, uhat_buf, RES);
+        fft2_real(u, uhat, uhat_buf, res);
 
-        for (y = 0; y < RES*RES; y++)
+        for (y = 0; y < res*res; y++)
             uhat[y] /= denom[y]; // Elementwise operations in freq space
 
-        ifft2_complex(uhat, u, uhat_buf, RES);
+        ifft2_complex(uhat, u, uhat_buf, res);
     }
     free(mem);
     return 0;
