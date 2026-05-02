@@ -284,7 +284,16 @@ int solve_swift_hohenberg(float* u, int res, SHOptions* options) {
 /********************************************************************************/
 
 
-char* generate_sh_field(SHOptions* options, int32_t res, uint32_t seed, int32_t charwidth, char* charmap) {
+char* generate_sh_string(SHOptions* options, int32_t res, uint32_t seed, int32_t charwidth, char* charmap) {
+    res = get_valid_res(res);
+    float* u = generate_sh_field(options, res, seed);
+    if (!u) return NULL;
+    char* str = sprint_array(u, res, res, 0, 0, charmap, charwidth);
+    free(u);
+    return str;
+}
+
+float* generate_sh_field(SHOptions* options, int32_t res, uint32_t seed) {
     res = get_valid_res(res);
     if (options == NULL) {
         options = &default_sh_options;
@@ -292,8 +301,8 @@ char* generate_sh_field(SHOptions* options, int32_t res, uint32_t seed, int32_t 
     rng_seed = seed;
     float* u;
     u = calloc(res*res, sizeof(float));
-    if (!res) return NULL;
+    if (!u) return NULL;
     random_normal_array(u, res*res, 0, options->init_stdev);
     solve_swift_hohenberg(u, res, options);
-    return sprint_array(u, res, res, 0, 0, charmap, charwidth);
+    return u;
 }

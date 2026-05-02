@@ -16,6 +16,10 @@ extern SHOptions default_sh_options;
 
 // WARNING: This mallocs the result, so be sure to free it!
 // Also, if you supply res other than a power of 2, it gets rounded to one of them.
-char* generate_sh_field(SHOptions* options, int32_t res, uint32_t seed, int32_t charwidth, char* charmap);
+char* generate_sh_string(SHOptions* options, int32_t res, uint32_t seed, int32_t charwidth, char* charmap);
+
+// WARNING: This mallocs the result, so be sure to free it!
+// Also, if you supply res other than a power of 2, it gets rounded to one of them.
+float* generate_sh_field(SHOptions* options, int32_t res, uint32_t seed);
 
 #endif

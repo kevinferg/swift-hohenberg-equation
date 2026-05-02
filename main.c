@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
     // options.init_stdev = 0.1f;
 
     char* example_solution_string;
-    example_solution_string = generate_sh_field(
+    example_solution_string = generate_sh_string(
         &options, // Misc. parameters
         32,       // Resolution (power of 2)
         234,      // RNG seed
